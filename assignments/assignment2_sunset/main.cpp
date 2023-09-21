@@ -1,45 +1,46 @@
-#include <stdio.h>
-#include <math.h>
-
-#include <ew/external/glad.h>
 #include <ew/ewMath/ewMath.h>
-#include <GLFW/glfw3.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 
-unsigned int createShader(GLenum shaderType, const char* sourceCode);
-unsigned int createShaderProgram(const char* vertexShaderSource, const char* fragmentShaderSource);
+#include <hb/shader.h>
+#include <GLFW/glfw3.h>
+
+struct Vertex {
+	float x, y, z;
+	float u, v;
+};
+
+//unsigned int createShader(GLenum shaderType, const char* sourceCode);
+//unsigned int createShaderProgram(const char* vertexShaderSource, const char* fragmentShaderSource);
 unsigned int createVAO(float* vertexData, int numVertices);
+unsigned int createVAO(float* vertexData, int numVertices, unsigned int* indicesData, int numIndices);
+unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned int* indicesData, int numIndices);
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 720;
 
-float vertices[9] = {
-	//x   //y  //z   
-	-0.5, -0.5, 0.0, 
-	 0.5, -0.5, 0.0,
-	 0.0,  0.5, 0.0 
+//float vertices[9] = {
+//	//x   //y  //z   
+//	-0.5, -0.5, 0.0, 
+//	 0.5, -0.5, 0.0,
+//	 0.0,  0.5, 0.0 
+//};
+
+Vertex vertices[4] = {
+	 //x    y    z   u   v
+	{ 0.0, 0.0, 0.0, 1,  1}, //Bottom left
+	{ 1.0, 0.0, 0.0, 1,  1}, //Bottom right
+	{ 0.0, 1.0, 0.0, 1,  1},  //Top right
+	{ 1.0, 1.0, 0.0, 1,  1}  //Top left
 };
 
-const char* vertexShaderSource = R"(
-	#version 450
-	layout(location = 0) in vec3 vPos;
-	void main(){
-		gl_Position = vec4(vPos,1.0);
-	}
-)";
 
-const char* fragmentShaderSource = R"(
-	#version 450
-	out vec4 FragColor;
-	uniform vec3 _Color;
-	uniform float _Brightness;
-	void main(){
-		FragColor = vec4(_Color * _Brightness,1.0);
-	}
-)";
+
+unsigned int indices[6] = {
+	0 , 1 , 2 , //Triangle 1
+	2 , 3 , 0  //Triangle 2
+};
+
+
 
 float triangleColor[3] = { 1.0f, 0.5f, 0.0f };
 float triangleBrightness = 1.0f;
@@ -71,10 +72,10 @@ int main() {
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init();
 
-	unsigned int shader = createShaderProgram(vertexShaderSource, fragmentShaderSource);
-	unsigned int vao = createVAO(vertices, 3);
+	hb::Shader shader("assets/vertexShader.vert", "assets/fragmentShader.frag");
+	shader.use();
 
-	glUseProgram(shader);
+	unsigned int vao = createVAO(vertices, 4, indices, 6);
 	glBindVertexArray(vao);
 
 	while (!glfwWindowShouldClose(window)) {
@@ -83,10 +84,11 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		//Set uniforms
-		glUniform3f(glGetUniformLocation(shader, "_Color"), triangleColor[0], triangleColor[1], triangleColor[2]);
-		glUniform1f(glGetUniformLocation(shader,"_Brightness"), triangleBrightness);
+		shader.setFloat("_Brightness", triangleBrightness);
+		shader.setVec3("_Color", triangleColor[0], triangleColor[1], triangleColor[2]);
 
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
 		//Render UI
 		{
@@ -113,7 +115,7 @@ int main() {
 }
 
 
-unsigned int createShader(GLenum shaderType, const char* sourceCode) {
+/*unsigned int createShader(GLenum shaderType, const char* sourceCode) {
 	//Create a new vertex shader object
 	unsigned int shader = glCreateShader(shaderType);
 	//Supply the shader object with source code
@@ -152,7 +154,7 @@ unsigned int createShaderProgram(const char* vertexShaderSource, const char* fra
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
 	return shaderProgram;
-}
+}*/
 
 unsigned int createVAO(float* vertexData, int numVertices) {
 	unsigned int vao;
@@ -171,6 +173,47 @@ unsigned int createVAO(float* vertexData, int numVertices) {
 	glEnableVertexAttribArray(0);
 
 	return vao;
+}
+
+unsigned int createVAO(float* vertexData, int numVertices, unsigned int* indicesData, int numIndices)
+{
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	unsigned int ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numIndices, indicesData, GL_STATIC_DRAW);
+
+	return vao;
+}
+
+unsigned int createVAO(Vertex* vertexData, int numVertices, unsigned int* indicesData, int numIndices)
+{
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	unsigned int vbo;
+	glGenBuffers(1, &vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+	unsigned int ebo;
+	glGenBuffers(1, &ebo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * numIndices, indicesData, GL_STATIC_DRAW);
+
+	//Position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, x));
+	glEnableVertexAttribArray(0);
+
+	//UV
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(offsetof(Vertex, u)));
+	glEnableVertexAttribArray(1);
+
+	return vao;
+
 }
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height)
