@@ -9,6 +9,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <ew/shader.h>
+#include <hb/texture.h>
 
 struct Vertex {
 	float x, y, z;
@@ -57,20 +58,53 @@ int main() {
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	ew::Shader shader("assets/vertexShader.vert", "assets/fragmentShader.frag");
+	ew::Shader background("assets/background.vert", "assets/background.frag");
+	ew::Shader character("assets/character.vert", "assets/character.frag");
 
 	unsigned int quadVAO = createVAO(vertices, 4, indices, 6);
 
 	glBindVertexArray(quadVAO);
+
+	unsigned int brick = loadTexture("assets/images/bricks.jpg", GL_CLAMP_TO_BORDER, GL_LINEAR_MIPMAP_LINEAR);
+	unsigned int noise = loadTexture("assets/images/noise.png", GL_CLAMP_TO_BORDER, GL_LINEAR_MIPMAP_LINEAR);
+	unsigned int dood = loadTexture("assets/images/dood.png", GL_CLAMP_TO_BORDER, GL_LINEAR_MIPMAP_LINEAR);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0.3f, 0.4f, 0.9f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
+
+		float time = (float)glfwGetTime();
+		character.setFloat("iTime", time);
+
 		//Set uniforms
-		shader.use();
+		//Place textureA in unit 0
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, brick);
+		//Place textureB in unit 1
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, dood);
+		//Place textureB in unit 2
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, noise);
+
+		//Must be using this shader when setting uniforms
+		background.use();
+		//Make sampler2D _BrickTexture sample from unit 0
+		background.setInt("_BrickTexture", 0);
+		background.setInt("_NoiseTexture", 2);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, NULL);
+
+		character.use();
+		//Make sampler2D _MarioTexture sample from unit 1
+		
+		//ask on monday about how to make the alpha slide between 0 and 1
+		character.setInt("_Character", 1);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, NULL);
 
