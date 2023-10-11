@@ -11,12 +11,14 @@
 #include <ew/shader.h>
 #include <ew/ewMath/vec3.h>
 #include <ew/procGen.h>
+#include <hb/transformations.h>
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
 //Square aspect ratio for now. We will account for this with projection later.
 const int SCREEN_WIDTH = 720;
 const int SCREEN_HEIGHT = 720;
+const int CUBES = 4;
 
 int main() {
 	printf("Initializing...");
@@ -53,8 +55,15 @@ int main() {
 
 	ew::Shader shader("assets/vertexShader.vert", "assets/fragmentShader.frag");
 	
-	//Cube mesh
-	ew::Mesh cubeMesh(ew::createCube(0.5f));
+
+	hb::Transform cubeTransforms[CUBES];
+	ew::Mesh cubeMeshs[CUBES];
+
+	for (int i = 0; i < CUBES; i++)
+	{
+		ew::Mesh cubeMesh(ew::createCube(0.5f));
+		cubeMeshs[i] = cubeMesh;
+	}
 	
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -62,25 +71,36 @@ int main() {
 		//Clear both color buffer AND depth buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//Set uniforms
-		shader.use();
-
-		//TODO: Set model matrix uniform
-
-		cubeMesh.draw();
-
-		//Render UI
+		for (int i = 0; i < CUBES; i++)
 		{
-			ImGui_ImplGlfw_NewFrame();
-			ImGui_ImplOpenGL3_NewFrame();
-			ImGui::NewFrame();
-
-			ImGui::Begin("Transform");
-			ImGui::End();
-
-			ImGui::Render();
-			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+			//Set uniforms
+			shader.use();
+			shader.setMat4("_Model", cubeTransforms[i].getModelMatrix());
+			cubeMeshs[i].draw();
 		}
+
+
+		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Transform");
+		for (size_t i = 0; i < CUBES; i++)
+		{
+			//Render UI
+			ImGui::PushID(i);
+			if (ImGui::CollapsingHeader("Transform")) {
+				ImGui::DragFloat3("Position", &cubeTransforms[i].position.x, 0.05f);
+				ImGui::DragFloat3("Rotation", &cubeTransforms[i].rotation.x, 1.0f);
+				ImGui::DragFloat3("Scale", &cubeTransforms[i].scale.x, 0.05f);
+			}
+			ImGui::PopID();
+		}
+
+		ImGui::End();
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
 	}
