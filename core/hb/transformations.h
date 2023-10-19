@@ -66,17 +66,17 @@ namespace hb {
 	inline ew::Mat4 LookAt(ew::Vec3 eye, ew::Vec3 target, ew::Vec3 up)
 	{
 		//use ew::Cross for cross product!
-		auto f = ew::Normalize(target - eye);
+		auto f = ew::Normalize(eye - target);
 		auto r = ew::Cross(up, f);
-		r = r / ew::Magnitude(r);
+		r = ew::Normalize(r);
 		auto u = ew::Cross(f, r);
-		u = u / ew::Magnitude(u);
+		u =ew::Normalize(u);
+
 		return ew::Mat4(
-			r.x, u.x, f.x, 0,
-			r.y, u.y, f.y, 0,
-			r.z, u.z, f.z, 0,
-			0, 0, 0, 1
-		);
+			r.x, r.y, r.z, 0,
+			u.x, u.y, u.z, 0,
+			f.x, f.y, f.z, 0,
+			0, 0, 0, 1) * hb::Translate(ew::Vec3(-eye.x, -eye.y, -eye.z));
 	};
 	//Orthographic projection
 	inline ew::Mat4 Orthographic(float height, float aspect, float near, float far) 
@@ -88,7 +88,7 @@ namespace hb {
 
 		return ew::Mat4(
 			(2/(r-l)), 0, 0, -((r+l)/(r-l)),
-			0, (2/t-b), 0, -((t+b)/(t-b)),
+			0, (2/(t-b)), 0, -((t+b)/(t-b)),
 			0, 0, -(2/(far-near)), -((far+near)/(far-near)),
 			0, 0, 0, 1
 		);
