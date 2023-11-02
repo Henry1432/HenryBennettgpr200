@@ -14,6 +14,7 @@
 #include <ew/transform.h>
 #include <ew/camera.h>
 #include <ew/cameraController.h>
+#include <hb/procGen.h>
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 void resetCamera(ew::Camera& camera, ew::CameraController& cameraController);
@@ -85,6 +86,38 @@ int main() {
 	//Initialize transforms
 	ew::Transform cubeTransform;
 
+	//Create mesh data 
+	ew::MeshData sphereMeshData = hb::createSphere(0.5f, 64);
+
+	//Create mesh renderer
+	ew::Mesh sphereMesh(sphereMeshData);
+
+	//Initialize transform
+	ew::Transform sphereTransform;
+	sphereTransform.position = ew::Vec3(1.0f, 0.0f, 0.0f);
+
+
+	//Create mesh data 
+	ew::MeshData cylinderMeshData = hb::createCylinder(1.0f, 0.5f, 20);
+
+	//Create mesh renderer
+	ew::Mesh cylinderMesh(cylinderMeshData);
+
+	//Initialize transform
+	ew::Transform cylinderTransform;
+	cylinderTransform.position = ew::Vec3(-1.0f, 0.0f, 0.0f);
+
+	
+	//Create mesh data 
+	ew::MeshData planeMeshData = hb::createPlane(5.0f, 5.0f, 5);
+
+	//Create mesh renderer
+	ew::Mesh planeMesh(planeMeshData);
+
+	//Initialize transform
+	ew::Transform planeTransform;
+	planeTransform.position = ew::Vec3(0.0f, -1.0f, 0.0f);
+
 	resetCamera(camera,cameraController);
 
 	while (!glfwWindowShouldClose(window)) {
@@ -112,6 +145,7 @@ int main() {
 		shader.setVec3("_Color", appSettings.shapeColor);
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
+
 		//Euler angels to forward vector
 		ew::Vec3 lightRot = appSettings.lightRotation * ew::DEG2RAD;
 		ew::Vec3 lightF = ew::Vec3(sinf(lightRot.y) * cosf(lightRot.x), sinf(lightRot.x), -cosf(lightRot.y) * cosf(lightRot.x));
@@ -120,6 +154,20 @@ int main() {
 		//Draw cube
 		shader.setMat4("_Model", cubeTransform.getModelMatrix());
 		cubeMesh.draw((ew::DrawMode)appSettings.drawAsPoints);
+
+		//Draw sphere
+		shader.setMat4("_Model", sphereTransform.getModelMatrix());
+		sphereMesh.draw((ew::DrawMode)appSettings.drawAsPoints);
+
+		//Draw cylinder ("what in the fuck")
+		shader.setMat4("_Model", cylinderTransform.getModelMatrix());
+		cylinderMesh.draw((ew::DrawMode)appSettings.drawAsPoints);
+		
+
+		//Draw plane (broken)
+		shader.setMat4("_Model", planeTransform.getModelMatrix());
+		planeMesh.draw((ew::DrawMode)appSettings.drawAsPoints);
+
 
 		//Render UI
 		{
