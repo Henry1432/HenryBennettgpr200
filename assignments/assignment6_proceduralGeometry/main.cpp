@@ -87,7 +87,7 @@ int main() {
 	ew::Transform cubeTransform;
 
 	//Create mesh data 
-	ew::MeshData sphereMeshData = hb::createSphere(0.5f, 64);
+	ew::MeshData sphereMeshData = hb::createSphere(0.5f, 32);
 
 	//Create mesh renderer
 	ew::Mesh sphereMesh(sphereMeshData);
