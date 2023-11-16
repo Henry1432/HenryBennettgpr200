@@ -72,6 +72,8 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 
 	ew::Shader shader("assets/defaultLit.vert", "assets/defaultLit.frag");
+	ew::Shader lightShader("assets/unlit.vert", "assets/unlit.frag");
+
 	unsigned int brickTexture = ew::loadTexture("assets/brick_color.jpg",GL_REPEAT,GL_LINEAR);
 
 	//Create cube
@@ -79,34 +81,48 @@ int main() {
 	ew::Mesh planeMesh(ew::createPlane(5.0f, 5.0f, 10));
 	ew::Mesh sphereMesh(ew::createSphere(0.5f, 64));
 	ew::Mesh cylinderMesh(ew::createCylinder(0.5f, 1.0f, 32));
-	ew::Mesh lightMesh(ew::createSphere(0.1f, 16));
+
+	ew::Mesh lightMesh1(ew::createSphere(0.1f, 16));
+	ew::Mesh lightMesh2(ew::createSphere(0.1f, 16));
+	ew::Mesh lightMesh3(ew::createSphere(0.1f, 16));
+	ew::Mesh lightMesh4(ew::createSphere(0.1f, 16));
 
 	//Initialize transforms
 	ew::Transform cubeTransform;
 	ew::Transform planeTransform;
 	ew::Transform sphereTransform;
 	ew::Transform cylinderTransform;
-	ew::Transform lightTransfom;
 	planeTransform.position = ew::Vec3(0, -1.0, 0);
 	sphereTransform.position = ew::Vec3(-1.5f, 0.0f, 0.0f);
 	cylinderTransform.position = ew::Vec3(1.5f, 0.0f, 0.0f);
-	lightTransfom.position = ew::Vec3(2.0f, 2.0f);
+
+
+	ew::Transform lightTransfom1;
+	ew::Transform lightTransfom2;
+	ew::Transform lightTransfom3;
+	ew::Transform lightTransfom4;
 
 	Light lights[4];
-	lights[0].position = ew::Vec3(2.0f, 2.0f);
+	lights[0].position = ew::Vec3(2.0f, 1.0f, 2.0f);
 	lights[0].color = ew::Vec3(1.0f, 0.0f, 0.0f);
-	lights[1].position = ew::Vec3(-2.0f, 2.0f);
-	lights[1].color = ew::Vec3(1.0f, 1.0f, 1.0f);
-	lights[2].position = ew::Vec3(2.0f, -2.0f);
-	lights[2].color = ew::Vec3(1.0f, 1.0f, 1.0f);
-	lights[3].position = ew::Vec3(-2.0f, -2.0f);
+	lights[1].position = ew::Vec3(-2.0f, 1.0f, 2.0f);
+	lights[1].color = ew::Vec3(0.0f, 1.0f, 0.0f);
+	lights[2].position = ew::Vec3(2.0f, 1.0f, -2.0f);
+	lights[2].color = ew::Vec3(0.0f, 0.0f, 1.0f);
+	lights[3].position = ew::Vec3(-2.0f, 1.0f, -2.0f);
 	lights[3].color = ew::Vec3(1.0f, 1.0f, 1.0f);
 
+	//set the uniforms of the second shader program
 
 	resetCamera(camera,cameraController);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
+
+		lightTransfom1.position = lights[0].position;
+		lightTransfom2.position = lights[1].position;
+		lightTransfom3.position = lights[2].position;
+		lightTransfom4.position = lights[3].position;
 
 		float time = (float)glfwGetTime();
 		float deltaTime = time - prevTime;
@@ -121,6 +137,7 @@ int main() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		shader.use();
+		shader.setVec3("_CamPos", camera.position);
 		glBindTexture(GL_TEXTURE_2D, brickTexture);
 		shader.setInt("_Texture", 0);
 		shader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
@@ -136,6 +153,7 @@ int main() {
 		shader.setVec3("_Lights[3].position", lights[3].position);
 		shader.setVec3("_Lights[3].color", lights[3].color);
 
+
 		//Draw shapes
 		shader.setMat4("_Model", cubeTransform.getModelMatrix());
 		cubeMesh.draw();
@@ -149,10 +167,25 @@ int main() {
 		shader.setMat4("_Model", cylinderTransform.getModelMatrix());
 		cylinderMesh.draw();
 
-		shader.setMat4("_Model", lightTransfom.getModelMatrix());
-		lightMesh.draw();
 
-		//TODO: Render point lights
+		lightShader.use();
+		lightShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
+		
+		lightShader.setMat4("_Model", lightTransfom1.getModelMatrix());
+		lightShader.setVec3("_Color", lights[0].color);
+		lightMesh1.draw();
+
+		lightShader.setMat4("_Model", lightTransfom2.getModelMatrix());
+		lightShader.setVec3("_Color", lights[1].color);
+		lightMesh2.draw();
+
+		lightShader.setMat4("_Model", lightTransfom3.getModelMatrix());
+		lightShader.setVec3("_Color", lights[2].color);
+		lightMesh3.draw();
+
+		lightShader.setMat4("_Model", lightTransfom4.getModelMatrix());
+		lightShader.setVec3("_Color", lights[3].color);
+		lightMesh4.draw();
 
 		//Render UI
 		{
@@ -177,6 +210,29 @@ int main() {
 				ImGui::DragFloat("Sprint Speed", &cameraController.sprintMoveSpeed, 0.1f);
 				if (ImGui::Button("Reset")) {
 					resetCamera(camera, cameraController);
+				}
+			}
+			if (ImGui::CollapsingHeader("LIGHTS")) 
+			{
+				if (ImGui::CollapsingHeader("light1"))
+				{
+					ImGui::DragFloat3("Position", &lights[0].position.x, 0.1f);
+					ImGui::DragFloat3("Color", &lights[0].color.x, 0.1f);
+				}
+				if (ImGui::CollapsingHeader("light2"))
+				{
+					ImGui::DragFloat3("Position", &lights[1].position.x, 0.1f);
+					ImGui::DragFloat3("Color", &lights[1].color.x, 0.1f);
+				}
+				if (ImGui::CollapsingHeader("light3"))
+				{
+					ImGui::DragFloat3("Position", &lights[2].position.x, 0.1f);
+					ImGui::DragFloat3("Color", &lights[2].color.x, 0.1f);
+				}
+				if (ImGui::CollapsingHeader("light4"))
+				{
+					ImGui::DragFloat3("Position", &lights[3].position.x, 0.1f);
+					ImGui::DragFloat3("Color", &lights[3].color.x, 0.1f);
 				}
 			}
 
@@ -211,5 +267,3 @@ void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
 	cameraController.yaw = 0.0f;
 	cameraController.pitch = 0.0f;
 }
-
-
