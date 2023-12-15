@@ -17,7 +17,7 @@ namespace ew {
 		void setVec3(const std::string& name, const ew::Vec3& v) const;
 		void setVec4(const std::string& name, float x, float y, float z, float w) const;
 		void setVec4(const std::string& name, const ew::Vec4& v) const;
-		void setMat4(const std::string& name, const ew::Mat4& m) const;
+		void setMat4(const std::string& name, const ew::Mat4& m) const; 
 	private:
 		unsigned int m_id; //Shader program handle
 	};

@@ -15,6 +15,7 @@ namespace ew {
 			printf("Failed to load file %s", filePath.c_str());
 			return {};
 		}
+
 		std::stringstream buffer;
 		buffer << fstream.rdbuf();
 		return buffer.str();
